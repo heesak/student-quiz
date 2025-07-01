@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-Powered Quiz App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- by heesak -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    * {
+      font-family: 'Poppins', sans-serif;
+    }
+    body {
+      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), 
+                  url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1740&q=80');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    .tech-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(30, 30, 30, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 30, 30, 0.2) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: -1;
+    }
+    .profile-pic {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #3b82f6;
+      transition: all 0.3s ease;
+    }
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+    }
+    .avatar-item {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .avatar-item:hover {
+      transform: scale(1.1);
+    }
+    .avatar-item.selected {
+      border: 3px solid #3b82f6;
+      border-radius: 50%;
+    }
+    .timer {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      border: 3px solid;
+      transition: all 0.3s ease;
+    }
+    .option:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .progress-bar {
+      height: 8px;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .question-indicator {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .question-indicator.answered {
+      background-color: #10b981;
+      color: white;
+    }
+    .question-indicator.current {
+      transform: scale(1.2);
+      border: 2px solid #3b82f6;
+    }
+    .key-hint {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #3b82f6;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .option:hover .key-hint {
+      opacity: 1;
+    }
+    .key-hint::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px 5px 0 5px;
+      border-style: solid;
+      border-color: #3b82f6 transparent transparent transparent;
+    }
+    .glow-box {
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="tech-grid"></div>
+  <div id="app" class="max-w-6xl mx-auto p-4">
+    <!-- Login Section -->
+    <div id="login-section" class="bg-gray-800 rounded-xl shadow-xl p-8 max-w-2xl mx-auto mt-10 text-white glow-box">
+      <h1 class="text-4xl font-bold text-center text-indigo-400 mb-2">QuizMaster AI</h1>
+      <p class="text-center text-gray-300 mb-8">Intelligent quizzes powered by AI</p>
+      
+      <div class="mb-6">
+        <label class="block text-gray-300 mb-2">Username <span class="text-red-500">*</span></label>
+        <input type="text" id="username" placeholder="Enter your name" 
+               class="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+               required>
+        <p id="username-error" class="text-red-400 text-sm mt-1 hidden">Username is required</p>
+      </div>
+      
+      <div class="mb-6">
+        <label class="block text-gray-300 mb-2">Select Avatar</label>
+        <div class="avatar-grid" id="avatar-grid">
+          <!-- Avatars will be dynamically inserted here -->
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <label class="block text-gray-300 mb-2">Select Topic</label>
+        <select id="topic" class="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="physics">Physics</option>
+          <option value="chemistry">Chemistry</option>
+          <option value="biology">Biology</option>
+          <option value="custom">Custom Topic (AI Generated)</option>
+        </select>
+        <div id="custom-topic-container" class="mt-2 hidden">
+          <input type="text" id="custom-topic" placeholder="Enter any topic" 
+                 class="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+      
+      <button id="start-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition transform hover:-translate-y-0.5 shadow-lg">
+        Start Quiz
+      </button>
+    </div>
+    
+    <!-- Quiz Section -->
+    <div id="quiz-section" class="hidden bg-gray-800 text-white p-6 rounded-xl shadow-lg glow-box">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-8 p-4 bg-gray-700 rounded-xl">
+        <div class="flex items-center">
+          <img id="user-pic" class="profile-pic mr-3" alt="User profile">
+          <div>
+            <h2 id="user-name" class="font-bold text-lg"></h2>
+            <p id="quiz-topic" class="text-sm text-gray-400"></p>
+          </div>
+        </div>
+        
+        <div class="flex items-center">
+          <div id="timer" class="timer bg-blue-900 border-blue-500 text-blue-300 mr-4">
+            60
+          </div>
+          <div>
+            <p class="text-sm text-gray-400">Question</p>
+            <p id="question-count" class="font-bold text-center">1/50</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="h-2 bg-gray-700 rounded-full mb-4 overflow-hidden">
+        <div id="progress-bar" class="progress-bar bg-indigo-600 w-0"></div>
+      </div>
+      
+      <!-- Question Area -->
+      <div id="question-container" class="bg-gray-700 rounded-xl p-6 mb-4 min-h-[300px]">
+        <h2 id="question-text" class="text-xl font-semibold mb-6 text-gray-100"></h2>
+        <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+      
+      <!-- Question Indicators -->
+      <div class="flex flex-wrap gap-2 mb-6 justify-center">
+        <!-- Question indicators will be dynamically inserted here -->
+      </div>
+      
+      <!-- Navigation -->
+      <div class="flex justify-between">
+        <button id="prev-btn" class="bg-gray-600 text-gray-200 px-6 py-3 rounded-lg font-medium hover:bg-gray-500 transition">
+          <i class="fas fa-arrow-left mr-2"></i>Previous
+        </button>
+        <button id="next-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition">
+          Next <i class="fas fa-arrow-right ml-2"></i>
+        </button>
+        <button id="submit-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition hidden">
+          Submit Quiz <i class="fas fa-check ml-2"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Results Section -->
+    <div id="results-section" class="hidden bg-gray-800 text-white p-8 rounded-xl shadow-lg text-center glow-box">
+      <h2 class="text-4xl font-bold text-indigo-400 mb-6">Quiz Completed!</h2>
+      <div class="flex justify-center mb-8">
+        <img id="result-pic" class="profile-pic w-32 h-32" alt="User profile">
+      </div>
+      <h3 id="result-name" class="text-2xl font-bold mb-2"></h3>
+      <p class="text-gray-400 mb-8">Here's your performance:</p>
+      
+      <div class="bg-gray-700 rounded-xl p-6 max-w-md mx-auto mb-8">
+        <div class="flex justify-between mb-4 text-gray-300">
+          <span class="font-medium">Total Questions:</span>
+          <span id="total-questions" class="font-bold">50</span>
+        </div>
+        <div class="flex justify-between mb-4">
+          <span class="font-medium">Correct Answers:</span>
+          <span id="correct-answers" class="font-bold text-green-400">0</span>
+        </div>
+        <div class="flex justify-between mb-4 text-gray-300">
+          <span class="font-medium">Time Taken:</span>
+          <span id="time-taken" class="font-bold">0:00</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="font-medium">Score:</span>
+          <span id="quiz-score" class="font-bold text-indigo-400">0%</span>
+        </div>
+      </div>
+      
+      <button id="restart-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition mr-3">
+        <i class="fas fa-redo mr-2"></i>Restart Quiz
+      </button>
+      <button id="new-topic-btn" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition">
+        <i class="fas fa-plus mr-2"></i>New Topic
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // App state
+    const state = {
+      currentUser: {
+        name: '',
+        pic: ''
+      },
+      currentTopic: 'physics',
+      questions: [],
+      currentQuestionIndex: 0,
+      userAnswers: [],
+      startTime: 0,
+      timerInterval: null,
+      timeRemaining: 60, // 60 seconds per question
+      selectedAvatarId: null
+    };
+    
+    // Vector avatars (10 illustrations)
+    const avatars = [
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Angel',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Max',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Luna',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Charlie',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Lucy',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Leo',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Bella',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Oliver',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Simba'
+    ];
+    
+    // DOM Elements
+    const loginSection = document.getElementById('login-section');
+    const quizSection = document.getElementById('quiz-section');
+    const resultsSection = document.getElementById('results-section');
+    const usernameInput = document.getElementById('username');
+    const usernameError = document.getElementById('username-error');
+    const avatarGrid = document.getElementById('avatar-grid');
+    const topicSelect = document.getElementById('topic');
+    const customTopicContainer = document.getElementById('custom-topic-container');
+    const customTopicInput = document.getElementById('custom-topic');
+    const startBtn = document.getElementById('start-btn');
+    const userPic = document.getElementById('user-pic');
+    const userName = document.getElementById('user-name');
+    const quizTopic = document.getElementById('quiz-topic');
+    const timer = document.getElementById('timer');
+    const questionCount = document.getElementById('question-count');
+    const progressBar = document.getElementById('progress-bar');
+    const questionIndicators = document.querySelector('.flex-wrap');
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const resultPic = document.getElementById('result-pic');
+    const resultName = document.getElementById('result-name');
+    const totalQuestions = document.getElementById('total-questions');
+    const correctAnswers = document.getElementById('correct-answers');
+    const timeTaken = document.getElementById('time-taken');
+    const quizScore = document.getElementById('quiz-score');
+    const restartBtn = document.getElementById('restart-btn');
+    const newTopicBtn = document.getElementById('new-topic-btn');
+    
+    // AI Question Generation (Simulated) - 50 questions
+    function generateAIGeneratedQuestions(topic) {
+      // Base questions
+      const baseQuestions = {
+        physics: [
+          { question: "What is the SI unit of force?", options: ["Newton", "Joule", "Watt", "Pascal"], answer: 0 },
+          { question: "Which law states that every action has an equal and opposite reaction?", options: ["Newton's First Law", "Newton's Second Law", "Newton's Third Law", "Law of Gravitation"], answer: 2 },
+          { question: "What is the speed of light in vacuum?", options: ["299,792 km/s", "300,000 km/s", "350,000 km/s", "250,000 km/s"], answer: 0 },
+          { question: "Which element has the highest electrical conductivity?", options: ["Gold", "Copper", "Silver", "Aluminum"], answer: 2 },
+          { question: "What does E=mc² represent?", options: ["Theory of Relativity", "Law of Conservation of Energy", "Photoelectric Effect", "Uncertainty Principle"], answer: 0 }
+        ],
+        chemistry: [
+          { question: "What is the atomic number of Oxygen?", options: ["6", "7", "8", "9"], answer: 2 },
+          { question: "Which of these is a noble gas?", options: ["Hydrogen", "Oxygen", "Helium", "Nitrogen"], answer: 2 },
+          { question: "What is the pH value of pure water?", options: ["5", "6", "7", "8"], answer: 2 },
+          { question: "Which element is essential for organic chemistry?", options: ["Carbon", "Silicon", "Iron", "Calcium"], answer: 0 },
+          { question: "What is the chemical formula for table salt?", options: ["NaCl", "H₂O", "CO₂", "C₆H₁₂O₆"], answer: 0 }
+        ],
+        biology: [
+          { question: "What is the powerhouse of the cell?", options: ["Nucleus", "Mitochondria", "Ribosome", "Endoplasmic Reticulum"], answer: 1 },
+          { question: "Which blood type is the universal donor?", options: ["A", "B", "AB", "O"], answer: 3 },
+          { question: "What is the largest organ in the human body?", options: ["Liver", "Brain", "Skin", "Intestine"], answer: 2 },
+          { question: "Which part of the plant conducts photosynthesis?", options: ["Root", "Stem", "Leaf", "Flower"], answer: 2 },
+          { question: "What is the basic unit of heredity?", options: ["Cell", "Gene", "Chromosome", "Protein"], answer: 1 }
+        ]
+      };
+      
+      // Generate 50 questions for each topic
+      const generateQuestions = (base, topicName) => {
+        const questions = [];
+        for (let i = 0; i < 50; i++) {
+          const baseIndex = i % base.length;
+          const question = {...base[baseIndex]};
+          
+          // Make questions slightly different
+          if (i >= base.length) {
+            question.question = `#${i+1}: ${question.question}`;
+            
+            // Rotate answers
+            const rotateOptions = (options, shift) => {
+              const newOptions = [...options];
+              for (let j = 0; j < shift; j++) {
+                newOptions.push(newOptions.shift());
+              }
+              return newOptions;
+            };
+            
+            question.options = rotateOptions([...question.options], i % 4);
+            question.answer = (question.answer + i) % 4;
+          }
+          
+          questions.push(question);
+        }
+        return questions;
+      };
+      
+      // For custom topics, generate random questions
+      if (topic === 'custom') {
+        const customTopic = customTopicInput.value.trim() || 'General Knowledge';
+        quizTopic.textContent = `Topic: ${customTopic}`;
+        
+        const customQuestions = [];
+        for (let i = 0; i < 50; i++) {
+          customQuestions.push({
+            question: `${customTopic} Question #${i+1}: ${Math.random().toString(36).substring(7)}`,
+            options: ["Option A", "Option B", "Option C", "Option D"],
+            answer: Math.floor(Math.random() * 4)
+          });
+        }
+        return customQuestions;
+      }
+      
+      return generateQuestions(baseQuestions[topic], topic);
+    }
+    
+    // Initialize the app
+    function initApp() {
+      // Populate avatars
+      avatars.forEach((avatar, index) => {
+        const avatarItem = document.createElement('div');
+        avatarItem.className = 'avatar-item';
+        avatarItem.innerHTML = `
+          <img src="${avatar}" class="profile-pic" alt="Avatar ${index+1}">
+        `;
+        avatarItem.addEventListener('click', () => selectAvatar(index, avatar));
+        avatarGrid.appendChild(avatarItem);
+      });
+      
+      // Select first avatar by default
+      if (avatars.length > 0) {
+        selectAvatar(0, avatars[0]);
+      }
+      
+      // Topic selection
+      topicSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+          customTopicContainer.classList.remove('hidden');
+        } else {
+          customTopicContainer.classList.add('hidden');
+        }
+      });
+      
+      // Start quiz
+      startBtn.addEventListener('click', startQuiz);
+      
+      // Navigation buttons
+      prevBtn.addEventListener('click', showPreviousQuestion);
+      nextBtn.addEventListener('click', showNextQuestion);
+      submitBtn.addEventListener('click', showResults);
+      
+      // Results buttons
+      restartBtn.addEventListener('click', restartQuiz);
+      newTopicBtn.addEventListener('click', showLogin);
+      
+      // Keyboard navigation
+      document.addEventListener('keydown', handleKeyPress);
+    }
+    
+    // Handle keyboard presses
+    function handleKeyPress(e) {
+      if (!quizSection.classList.contains('hidden')) {
+        const key = e.key.toUpperCase();
+        
+        // Only process A-D keys when in quiz section
+        if (key >= 'A' && key <= 'D') {
+          const optionIndex = key.charCodeAt(0) - 65;
+          selectOption(optionIndex);
+          highlightPressedKey(key);
+        }
+        // Arrow keys for navigation
+        else if (key === 'ARROWRIGHT' || key === 'D') {
+          showNextQuestion();
+        }
+        else if (key === 'ARROWLEFT' || key === 'A') {
+          showPreviousQuestion();
+        }
+      }
+    }
+    
+    // Visual feedback for key press
+    function highlightPressedKey(key) {
+      const keyElement = document.querySelector(`.key[data-key="${key}"]`);
+      if (keyElement) {
+        keyElement.classList.add('bg-indigo-500', 'text-white');
+        setTimeout(() => {
+          keyElement.classList.remove('bg-indigo-500', 'text-white');
+        }, 200);
+      }
+    }
+    
+    // Avatar selection
+    function selectAvatar(index, url) {
+      // Remove selection from all avatars
+      document.querySelectorAll('.avatar-item').forEach(item => {
+        item.classList.remove('selected');
+      });
+      
+      // Add selection to clicked avatar
+      document.querySelectorAll('.avatar-item')[index].classList.add('selected');
+      state.currentUser.pic = url;
+      state.selectedAvatarId = index;
+    }
+    
+    // Start the quiz
+    function startQuiz() {
+      const username = usernameInput.value.trim();
+      if (!username) {
+        usernameError.classList.remove('hidden');
+        usernameInput.classList.add('border-red-500');
+        return;
+      }
+      
+      state.currentUser.name = username;
+      state.currentTopic = topicSelect.value;
+      
+      // Generate questions based on topic
+      state.questions = generateAIGeneratedQuestions(state.currentTopic);
+      state.currentQuestionIndex = 0;
+      state.userAnswers = Array(state.questions.length).fill(-1);
+      state.startTime = Date.now();
+      
+      // Update UI
+      loginSection.classList.add('hidden');
+      quizSection.classList.remove('hidden');
+      
+      // Set user avatar
+      userPic.src = state.currentUser.pic;
+      userName.textContent = state.currentUser.name;
+      quizTopic.textContent = `Topic: ${state.currentTopic.charAt(0).toUpperCase() + state.currentTopic.slice(1)}`;
+      
+      // Create question indicators
+      renderQuestionIndicators();
+      
+      startTimer();
+      showCurrentQuestion();
+    }
+    
+    // Render question indicators
+    function renderQuestionIndicators() {
+      questionIndicators.innerHTML = '';
+      state.questions.forEach((_, index) => {
+        const indicator = document.createElement('div');
+        indicator.className = 'question-indicator bg-gray-600 text-gray-300';
+        indicator.textContent = index + 1;
+        indicator.dataset.index = index;
+        indicator.addEventListener('click', () => {
+          state.currentQuestionIndex = index;
+          startTimer();
+          showCurrentQuestion();
+        });
+        questionIndicators.appendChild(indicator);
+      });
+    }
+    
+    // Timer functions
+    function startTimer() {
+      state.timeRemaining = 60;
+      updateTimerDisplay();
+      
+      if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+      }
+      
+      state.timerInterval = setInterval(() => {
+        state.timeRemaining--;
+        updateTimerDisplay();
+        
+        if (state.timeRemaining <= 0) {
+          clearInterval(state.timerInterval);
+          handleTimeUp();
+        }
+      }, 1000);
+    }
+    
+    function updateTimerDisplay() {
+      timer.textContent = state.timeRemaining;
+      
+      // Change color when time is running low
+      if (state.timeRemaining <= 10) {
+        timer.classList.remove('bg-blue-900', 'border-blue-500', 'text-blue-300');
+        timer.classList.add('bg-red-900', 'border-red-500', 'text-red-300');
+      } else {
+        timer.classList.remove('bg-red-900', 'border-red-500', 'text-red-300');
+        timer.classList.add('bg-blue-900', 'border-blue-500', 'text-blue-300');
+      }
+    }
+    
+    function handleTimeUp() {
+      // Auto-select an option if none was selected
+      if (state.userAnswers[state.currentQuestionIndex] === -1) {
+        state.userAnswers[state.currentQuestionIndex] = null; // Mark as unanswered
+        updateQuestionIndicator(state.currentQuestionIndex);
+      }
+      showNextQuestion();
+    }
+    
+    // Question navigation
+    function showCurrentQuestion() {
+      const question = state.questions[state.currentQuestionIndex];
+      
+      // Update question count
+      questionCount.textContent = `${state.currentQuestionIndex + 1}/${state.questions.length}`;
+      
+      // Update progress bar
+      const progressPercentage = ((state.currentQuestionIndex) / state.questions.length) * 100;
+      progressBar.style.width = `${progressPercentage}%`;
+      
+      // Update question indicators
+      document.querySelectorAll('.question-indicator').forEach((indicator, index) => {
+        indicator.classList.remove('current');
+        if (state.userAnswers[index] !== -1) {
+          indicator.classList.add('answered');
+        } else {
+          indicator.classList.remove('answered');
+        }
+        if (index === state.currentQuestionIndex) {
+          indicator.classList.add('current');
+        }
+      });
+      
+      // Display question
+      questionText.textContent = question.question;
+      
+      // Display options with keyboard hints
+      optionsContainer.innerHTML = '';
+      question.options.forEach((option, index) => {
+        const optionElement = document.createElement('div');
+        optionElement.className = `option bg-gray-600 p-4 rounded-lg border cursor-pointer transition relative ${
+          state.userAnswers[state.currentQuestionIndex] === index 
+            ? 'border-indigo-500 bg-indigo-900' 
+            : 'border-gray-500'
+        }`;
+        
+        const key = String.fromCharCode(65 + index);
+        optionElement.innerHTML = `
+          <div class="key-hint">Press ${key}</div>
+          <div class="flex items-center">
+            <div class="key w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-gray-500 text-gray-200" data-key="${key}">
+              ${key}
+            </div>
+            <div>${option}</div>
+          </div>
+        `;
+        
+        optionElement.addEventListener('click', () => selectOption(index));
+        optionsContainer.appendChild(optionElement);
+      });
+      
+      // Update navigation buttons
+      prevBtn.disabled = state.currentQuestionIndex === 0;
+      nextBtn.classList.toggle('hidden', state.currentQuestionIndex === state.questions.length - 1);
+      submitBtn.classList.toggle('hidden', state.currentQuestionIndex !== state.questions.length - 1);
+    }
+    
+    function selectOption(optionIndex) {
+      state.userAnswers[state.currentQuestionIndex] = optionIndex;
+      updateQuestionIndicator(state.currentQuestionIndex);
+      showCurrentQuestion();
+    }
+    
+    function updateQuestionIndicator(index) {
+      const indicator = document.querySelector(`.question-indicator[data-index="${index}"]`);
+      if (indicator) {
+        indicator.classList.add('answered');
+      }
+    }
+    
+    function showPreviousQuestion() {
+      if (state.currentQuestionIndex > 0) {
+        state.currentQuestionIndex--;
+        startTimer();
+        showCurrentQuestion();
+      }
+    }
+    
+    function showNextQuestion() {
+      if (state.currentQuestionIndex < state.questions.length - 1) {
+        state.currentQuestionIndex++;
+        startTimer();
+        showCurrentQuestion();
+      }
+    }
+    
+    // Results
+    function showResults() {
+      clearInterval(state.timerInterval);
+      quizSection.classList.add('hidden');
+      resultsSection.classList.remove('hidden');
+      
+      // Calculate score
+      const correctCount = state.userAnswers.reduce((count, answer, index) => {
+        return answer === state.questions[index].answer ? count + 1 : count;
+      }, 0);
+      
+      const score = (correctCount / state.questions.length) * 100;
+      
+      // Calculate time taken
+      const endTime = Date.now();
+      const timeTakenSeconds = Math.floor((endTime - state.startTime) / 1000);
+      const minutes = Math.floor(timeTakenSeconds / 60);
+      const seconds = timeTakenSeconds % 60;
+      
+      // Display results
+      resultPic.src = state.currentUser.pic;
+      resultName.textContent = state.currentUser.name;
+      totalQuestions.textContent = state.questions.length;
+      correctAnswers.textContent = correctCount;
+      timeTaken.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+      quizScore.textContent = `${score.toFixed(0)}%`;
+    }
+    
+    // Restart quiz
+    function restartQuiz() {
+      state.currentQuestionIndex = 0;
+      state.userAnswers = Array(state.questions.length).fill(-1);
+      state.startTime = Date.now();
+      
+      resultsSection.classList.add('hidden');
+      quizSection.classList.remove('hidden');
+      
+      renderQuestionIndicators();
+      startTimer();
+      showCurrentQuestion();
+    }
+    
+    // Show login screen
+    function showLogin() {
+      resultsSection.classList.add('hidden');
+      loginSection.classList.remove('hidden');
+    }
+    
+    // Initialize the app when the page loads
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
